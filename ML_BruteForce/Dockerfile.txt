@@ -1,0 +1,60 @@
+FROM rocker/shiny-verse:latest
+
+## Install any Linux system dependencies
+RUN apt-get update && apt-get install -y \
+    sudo \
+    pandoc \
+    pandoc-citeproc \
+    r-cran-rjava \
+    libcurl4-gnutls-dev \
+    libcairo2-dev \
+    libxt-dev \
+    libssl-dev \
+    libssh2-1-dev 
+
+RUN apt-get install -y openjdk-8-jdk
+RUN apt-get install -y openjdk-8-jre
+RUN update-alternatives --config java
+RUN update-alternatives --config javac
+
+# clean local repository
+RUN apt-get clean
+
+# set up JAVA_HOME
+ENV JAVA_HOME usr/lib/jvm/java-8-openjdk-amd64/
+
+# Default to UTF-8 file.encoding
+ENV LANG C.UTF-8
+
+## Install R libraries
+RUN R -e "install.packages('shiny',dependencies = TRUE)"
+RUN R -e "install.packages('shinyBS',dependencies = TRUE)"
+RUN R -e "install.packages('DT',dependencies = TRUE)"
+RUN R -e "install.packages('visdat',dependencies = TRUE)"
+RUN R -e "install.packages('ggplot2',dependencies = TRUE)"
+RUN R -e "install.packages('shinycssloaders',dependencies = TRUE)"
+RUN R -e "install.packages('corrgram',dependencies = TRUE)"
+RUN R -e "install.packages('doParallel',dependencies = TRUE)"
+RUN R -e "install.packages('rlang',dependencies = TRUE)"
+# RUN R -e "install.packages('rJava',dependencies = TRUE)"
+RUN R -e "install.packages('devtools',dependencies = TRUE)"
+RUN R -e "install.packages('caret',dependencies = TRUE)"
+RUN R -e "install.packages('recipes',dependencies = TRUE)"
+RUN R -e "install.packages('BioManager',dependencies = TRUE)"
+RUN R -e "BiocManager::install('mixOmics')"
+RUN R -e "install.packages('rlist',dependencies = TRUE)"
+RUN R -e "install.packages('butcher',dependencies = TRUE)"
+RUN R -e "install.packages('summarytools',dependencies = TRUE)"
+
+
+## Copy Shiny application files
+COPY /App /srv/shiny-server/
+
+## Grant access to server directory
+RUN sudo chown -R shiny:shiny /srv/shiny-server
+
+## Open the port for Shiny
+EXPOSE 3838
+
+## Start Shiny Server
+CMD ["R", "-e", "shiny::runApp('/srv/shiny-server/', host = '0.0.0.0', port = 3838)"]
